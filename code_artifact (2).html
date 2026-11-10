@@ -1,0 +1,2386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>衛糾底家 - 校園環境評分系統</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Vue 3 UMD -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            muji: {
+              bg: '#F7F5F0',       /* Warm Linen White */
+              card: '#FFFFFF',     /* Pure White Card */
+              border: '#E6E2D8',   /* Soft Warm Border */
+              text: '#2D2A26',     /* Dark Charcoal Text */
+              muted: '#6E6A64',    /* Muted Slate Text */
+              wood: '#7C6958',     /* Warm Wood Accent */
+              terracotta: '#B85B48',/* Soft Warm Red */
+              sage: '#6B7C6E',     /* Sage Green Accent */
+              amber: '#C48B36',    /* Soft Warm Amber */
+              slate: '#5D707F'     /* Soft Muted Blue */
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    [v-cloak] { display: none !important; }
+    body {
+      background-color: #F7F5F0;
+      color: #2D2A26;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F0EDE6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D4CEC3;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #B3ABA0;
+    }
+
+    /* Print Optimization Styles */
+    @media print {
+      header, nav, .no-print, button, input, select {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .print-area {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans flex flex-col antialiased selection:bg-muji-wood selection:text-white">
+
+  <div id="app" v-cloak class="flex flex-col min-h-screen">
+    
+    <!-- Toast Alert Notification -->
+    <div class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none no-print">
+      <transition-group enter-active-class="transform ease-out duration-300 transition translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                        enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                        leave-active-class="transition ease-in duration-100 opacity-100"
+                        leave-to-class="opacity-0">
+        <div v-if="toast.show" :key="toast.id" 
+             class="pointer-events-auto p-4 rounded-xl shadow-lg border flex items-center gap-3 bg-white border-muji-border"
+             :class="{
+               'border-l-4 border-l-muji-sage text-muji-text': toast.type === 'success',
+               'border-l-4 border-l-muji-terracotta text-muji-text': toast.type === 'error',
+               'border-l-4 border-l-muji-amber text-muji-text': toast.type === 'warning',
+               'border-l-4 border-l-muji-slate text-muji-text': toast.type === 'info'
+             }">
+          <i class="text-lg" :class="{
+            'fa-solid fa-circle-check text-muji-sage': toast.type === 'success',
+            'fa-solid fa-circle-xmark text-muji-terracotta': toast.type === 'error',
+            'fa-solid fa-triangle-exclamation text-muji-amber': toast.type === 'warning',
+            'fa-solid fa-circle-info text-muji-slate': toast.type === 'info'
+          }"></i>
+          <div class="flex-1 text-xs font-bold">{{ toast.message }}</div>
+          <button @click="toast.show = false" class="text-muji-muted hover:text-muji-text transition">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </transition-group>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="bg-white border-b border-muji-border sticky top-0 z-30 shadow-xs no-print">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          
+          <!-- Logo & Title -->
+          <div class="flex items-center space-x-3 cursor-pointer" @click="switchTab('form')">
+            <div class="w-9 h-9 rounded-xl bg-muji-wood flex items-center justify-center text-white font-bold shadow-xs">
+              <i class="fa-solid fa-leaf text-base"></i>
+            </div>
+            <div>
+              <h1 class="text-base font-black tracking-wide text-muji-text flex items-center gap-2">
+                衛糾底家
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-muji-bg text-muji-wood border border-muji-border">網頁版</span>
+              </h1>
+              <p class="text-[10px] text-muji-muted">Campus Inspection Web Platform</p>
+            </div>
+          </div>
+
+          <!-- Navigation Tabs (Desktop) -->
+          <nav class="hidden md:flex space-x-1 bg-muji-bg p-1 rounded-xl border border-muji-border">
+            <button @click="switchTab('form')" 
+                    :class="activeTab === 'form' ? 'bg-white text-muji-wood font-extrabold shadow-xs' : 'text-muji-muted hover:text-muji-text'"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square"></i> 評分填報
+            </button>
+            
+            <button @click="switchTab('ranking')" 
+                    :class="activeTab === 'ranking' ? 'bg-white text-muji-amber font-extrabold shadow-xs' : 'text-muji-muted hover:text-muji-text'"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-trophy"></i> 成績查詢與週排名
+            </button>
+
+            <button @click="switchTab('tasks')" 
+                    :class="activeTab === 'tasks' ? 'bg-white text-muji-wood font-extrabold shadow-xs' : 'text-muji-muted hover:text-muji-text'"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check"></i> 今日任務
+              <span class="px-1.5 py-0.2 text-[10px] rounded-full font-bold"
+                    :class="todayTaskStats.pendingCount > 0 ? 'bg-muji-amber text-white' : 'bg-muji-sage text-white'">
+                {{ todayTaskStats.pendingCount > 0 ? `${todayTaskStats.pendingCount}` : '✓' }}
+              </span>
+            </button>
+
+            <button @click="switchTab('history')" 
+                    :class="activeTab === 'history' ? 'bg-white text-muji-wood font-extrabold shadow-xs' : 'text-muji-muted hover:text-muji-text'"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-box-archive"></i> 歷史紀錄
+              <span class="px-1.5 py-0.2 text-[10px] rounded-full bg-muji-bg text-muji-muted border border-muji-border">{{ records.length }}</span>
+            </button>
+
+            <!-- 組長ㄉ窩 (LEADER'S HUB) -->
+            <button @click="switchTab('leaderHub')" 
+                    :class="activeTab === 'leaderHub' ? 'bg-muji-wood text-white font-black shadow-xs' : 'text-muji-wood hover:bg-white/60'"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 border border-muji-wood/30">
+              <i class="fa-solid fa-crown text-amber-300"></i> 組長ㄉ窩
+            </button>
+          </nav>
+
+          <!-- Date Banner -->
+          <div class="hidden lg:flex items-center space-x-2 text-xs text-muji-muted bg-muji-bg px-3 py-1.5 rounded-lg border border-muji-border font-medium">
+            <i class="fa-regular fa-calendar-check text-muji-wood"></i>
+            <span>{{ todayFormatted }}</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Bar -->
+      <div class="md:hidden bg-white border-t border-muji-border px-1 py-1.5 flex justify-around text-xs">
+        <button @click="switchTab('form')" :class="activeTab === 'form' ? 'text-muji-wood font-extrabold' : 'text-muji-muted'" class="p-1 flex flex-col items-center">
+          <i class="fa-solid fa-pen-to-square text-sm"></i> 評分
+        </button>
+        <button @click="switchTab('ranking')" :class="activeTab === 'ranking' ? 'text-muji-amber font-extrabold' : 'text-muji-muted'" class="p-1 flex flex-col items-center">
+          <i class="fa-solid fa-trophy text-sm"></i> 週排名
+        </button>
+        <button @click="switchTab('tasks')" :class="activeTab === 'tasks' ? 'text-muji-wood font-extrabold' : 'text-muji-muted'" class="p-1 flex flex-col items-center">
+          <i class="fa-solid fa-list-check text-sm"></i> 任務
+        </button>
+        <button @click="switchTab('history')" :class="activeTab === 'history' ? 'text-muji-wood font-extrabold' : 'text-muji-muted'" class="p-1 flex flex-col items-center">
+          <i class="fa-solid fa-box-archive text-sm"></i> 紀錄
+        </button>
+        <button @click="switchTab('leaderHub')" :class="activeTab === 'leaderHub' ? 'text-muji-terracotta font-extrabold' : 'text-muji-muted'" class="p-1 flex flex-col items-center">
+          <i class="fa-solid fa-crown text-sm"></i> 組長ㄉ窩
+        </button>
+      </div>
+    </header>
+
+    <!-- Main App Viewports -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+      <!-- ================= TAB 1: RATING FORM (衛糾底家) ================= -->
+      <section v-if="activeTab === 'form'" class="space-y-6">
+        
+        <!-- 組長廣播 / 糾察重點 對話框 -->
+        <div class="bg-white border border-muji-border rounded-2xl p-5 shadow-xs flex items-start gap-4">
+          <div class="w-10 h-10 rounded-xl bg-muji-amber/15 text-muji-amber flex items-center justify-center font-bold shrink-0 text-lg border border-muji-amber/30">
+            <i class="fa-solid fa-bullhorn"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-muji-border/60 pb-2 mb-2">
+              <h3 class="text-sm font-black text-muji-text flex items-center gap-1.5">
+                {{ broadcastNotice.title || '📢 組長廣播 / 糾察重點' }}
+              </h3>
+              <span class="text-[10px] text-muji-muted font-semibold bg-muji-bg px-2.5 py-0.5 rounded-full border border-muji-border">
+                更新：{{ broadcastNotice.updatedAt }}
+              </span>
+            </div>
+            <div class="text-xs text-muji-text/90 whitespace-pre-line leading-relaxed font-medium">
+              {{ broadcastNotice.content }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner Header -->
+        <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-leaf text-muji-wood"></i>
+              衛糾底家 - 校園衛生評分填報
+            </h2>
+            <p class="text-muji-muted text-xs mt-1">
+              點選類別與班別，輸入評分員密碼驗證後點選扣分項目（提交後系統將自動為評分人員登錄 0.5 小時服務時數與到勤紀錄）。
+            </p>
+          </div>
+          <button @click="resetForm" class="px-3.5 py-1.5 text-xs bg-muji-bg hover:bg-muji-border text-muji-text rounded-xl border border-muji-border transition flex items-center gap-1.5 font-bold">
+            <i class="fa-solid fa-rotate-left"></i> 重設表格
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          <!-- Left Panel: Controls & Verification -->
+          <div class="lg:col-span-5 space-y-6">
+            
+            <!-- Basic Class Info -->
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+              <h3 class="text-sm font-black text-muji-text border-b border-muji-border pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days text-muji-wood"></i>
+                1. 檢查對象、日期與班別
+              </h3>
+
+              <!-- Category selector: 內掃 vs 外掃 -->
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1.5">主要檢查類別</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" @click="formData.taskType = '內掃檢查'"
+                          class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                          :class="formData.taskType === '內掃檢查' ? 'bg-muji-sage text-white border-muji-sage shadow-xs' : 'bg-muji-bg border-muji-border text-muji-muted hover:bg-white'">
+                    <i class="fa-solid fa-house-laptop"></i> 內掃檢查
+                  </button>
+                  <button type="button" @click="formData.taskType = '外掃檢查'"
+                          class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                          :class="formData.taskType === '外掃檢查' ? 'bg-muji-amber text-white border-muji-amber shadow-xs' : 'bg-muji-bg border-muji-border text-muji-muted hover:bg-white'">
+                    <i class="fa-solid fa-tree"></i> 外掃檢查
+                  </button>
+                </div>
+              </div>
+
+              <!-- Date Picker -->
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">檢查日期</label>
+                <input type="date" v-model="formData.date" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text font-bold focus:outline-none focus:border-muji-wood">
+              </div>
+
+              <!-- Grade & Department Selectors -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-muji-muted mb-1">年級</label>
+                  <select v-model="formData.grade" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text font-bold focus:outline-none focus:border-muji-wood">
+                    <option v-for="g in grades" :key="g" :value="g">{{ g }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-muji-muted mb-1">科別</label>
+                  <select v-model="formData.department" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text font-bold focus:outline-none focus:border-muji-wood">
+                    <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Class selection -->
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">班別選單</label>
+                <div class="space-y-2">
+                  <select v-model="formData.className" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text font-extrabold focus:outline-none focus:border-muji-wood">
+                    <option value="甲班">甲班</option>
+                    <option value="乙班">乙班</option>
+                    <option value="丙班">丙班</option>
+                    <option value="自訂輸入班別">自訂輸入班別...</option>
+                  </select>
+
+                  <div v-if="formData.className === '自訂輸入班別'" class="space-y-1 pt-1">
+                    <label class="block text-[11px] font-bold text-muji-wood">請輸入自訂班別名稱：</label>
+                    <input type="text" v-model="formData.customClassName" placeholder="如：特教班、實驗班..." class="w-full bg-muji-bg border border-muji-wood/40 rounded-xl px-3 py-2 text-xs text-muji-text focus:outline-none focus:border-muji-wood">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inspector Verification Panel -->
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+              <div class="flex items-center justify-between border-b border-muji-border pb-3">
+                <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+                  <i class="fa-solid fa-user-shield text-muji-wood"></i>
+                  2. 評分人員驗證
+                </h3>
+                <span v-if="formData.isVerified" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <i class="fa-solid fa-circle-check"></i> 已驗證
+                </span>
+                <span v-else class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                  <i class="fa-solid fa-clock"></i> 待驗證
+                </span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">評分人員</label>
+                <select v-model="formData.inspectorId" @change="onInspectorChange" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text font-bold focus:outline-none">
+                  <option value="" disabled>-- 請選擇評分人員 --</option>
+                  <option v-for="ins in inspectors" :key="ins.id" :value="ins.id">
+                    {{ ins.name }} ({{ ins.role }})
+                  </option>
+                </select>
+              </div>
+
+              <div v-if="formData.inspectorId" class="bg-muji-bg rounded-xl p-4 border border-muji-border space-y-2.5">
+                <div class="flex items-center justify-between text-xs text-muji-muted">
+                  <span>安全驗證 PIN 碼</span>
+                  <span class="italic text-[11px]">預設 PIN: {{ currentSelectedInspector?.pin }}</span>
+                </div>
+                
+                <div class="flex gap-2">
+                  <input type="password" v-model="formData.inspectorPin" placeholder="4位數驗證密碼" 
+                         @keyup.enter="verifyInspector"
+                         class="flex-1 bg-white border border-muji-border rounded-xl px-3 py-2 text-xs tracking-widest text-muji-text focus:outline-none">
+                  <button @click="verifyInspector" class="px-4 py-2 bg-muji-wood hover:bg-opacity-90 text-white font-bold text-xs rounded-xl transition">
+                    驗證
+                  </button>
+                </div>
+                <p v-if="verificationError" class="text-xs text-muji-terracotta flex items-center gap-1 font-bold">
+                  <i class="fa-solid fa-circle-exclamation"></i> 驗證失敗：密碼不正確！
+                </p>
+              </div>
+            </div>
+
+            <!-- Score Summary & Action Button -->
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+              <div class="flex items-center justify-between border-b border-muji-border pb-3">
+                <span class="text-xs font-extrabold text-muji-muted uppercase">評分試算</span>
+                <span class="text-xs font-bold text-muji-muted">基準滿分 100 分</span>
+              </div>
+
+              <div class="flex items-baseline justify-between">
+                <div>
+                  <div class="text-xs text-muji-muted font-bold">最終得分</div>
+                  <div class="text-4xl font-black mt-1" :class="scoreColorClass">
+                    {{ currentFinalScore }} <span class="text-xs text-muji-muted font-normal">分</span>
+                  </div>
+                </div>
+
+                <div class="text-right">
+                  <div class="text-xs text-muji-muted font-bold">總扣分數</div>
+                  <div class="text-2xl font-black text-muji-terracotta mt-1">
+                    -{{ currentTotalDeductions }} <span class="text-xs text-muji-muted font-normal">分</span>
+                  </div>
+                </div>
+              </div>
+
+              <button @click="submitRatingForm" 
+                      :disabled="!formData.isVerified"
+                      class="w-full py-3 px-4 rounded-xl font-black text-xs shadow-xs transition flex items-center justify-center gap-2"
+                      :class="formData.isVerified ? 'bg-muji-wood text-white hover:bg-opacity-90 cursor-pointer' : 'bg-muji-border text-muji-muted cursor-not-allowed'">
+                <i class="fa-solid fa-paper-plane"></i>
+                {{ formData.isVerified ? '提交評分紀錄 (衛糾底家)' : '請先完成評分人員驗證' }}
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Right Panel: Visual Violation Selection Chips -->
+          <div class="lg:col-span-7 space-y-6">
+            
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-5">
+              
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-muji-border pb-3">
+                <div>
+                  <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+                    <i class="fa-solid fa-hand-pointer text-muji-wood"></i>
+                    3. 檢查項目與扣分 (點選 / 複選按鈕)
+                  </h3>
+                  <p class="text-xs text-muji-muted mt-0.5">點選卡片增減違規次數 (每項固定扣 1 分)</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold px-3 py-1 rounded-full border border-muji-border bg-muji-bg text-muji-wood">
+                    {{ formData.taskType }} 專區 ({{ activeCategoryViolations.length }} 項)
+                  </span>
+                  <button v-if="Object.keys(formData.selectedViolations).length > 0" 
+                          @click="formData.selectedViolations = {}" 
+                          class="text-xs text-muji-terracotta hover:underline font-bold">
+                    清空選取
+                  </button>
+                </div>
+              </div>
+
+              <!-- Violations Chip Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div v-for="item in activeCategoryViolations" :key="item.id" 
+                     class="p-3.5 rounded-xl border transition flex flex-col justify-between cursor-pointer select-none"
+                     :class="getItemCount(item.id) > 0 ? 'bg-red-50/60 border-muji-terracotta text-muji-text shadow-xs' : 'bg-muji-bg/60 border-muji-border hover:bg-white hover:border-muji-wood/40'"
+                     @click="toggleViolationItem(item.id)">
+                  
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
+                           :class="getItemCount(item.id) > 0 ? 'bg-muji-terracotta text-white' : 'bg-muji-border text-muji-muted'">
+                        <i :class="getItemIconClass(item.name)"></i>
+                      </div>
+                      <span class="font-bold text-xs text-muji-text">{{ item.name }}</span>
+                    </div>
+
+                    <span class="text-[11px] font-black px-2 py-0.5 rounded-full"
+                          :class="getItemCount(item.id) > 0 ? 'bg-muji-terracotta/20 text-muji-terracotta' : 'bg-muji-border text-muji-muted'">
+                      -{{ item.points }}分
+                    </span>
+                  </div>
+
+                  <p class="text-[11px] text-muji-muted mt-2 mb-2 leading-tight">
+                    {{ item.description || '標準評分扣分細項' }}
+                  </p>
+
+                  <!-- Multiplier Controller -->
+                  <div class="flex items-center justify-between border-t border-muji-border/60 pt-2 mt-auto" @click.stop>
+                    <span class="text-[10px] font-bold" :class="getItemCount(item.id) > 0 ? 'text-muji-terracotta' : 'text-muji-muted'">
+                      {{ getItemCount(item.id) > 0 ? '已標記扣分' : '點擊選取扣分' }}
+                    </span>
+
+                    <div v-if="getItemCount(item.id) > 0" class="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-muji-terracotta/40">
+                      <button @click.stop="changeItemCount(item.id, -1)" class="w-5 h-5 rounded bg-muji-bg hover:bg-muji-border text-muji-text font-bold text-xs flex items-center justify-center">
+                        -
+                      </button>
+                      <span class="w-5 text-center text-xs font-black text-muji-terracotta">{{ getItemCount(item.id) }}</span>
+                      <button @click.stop="changeItemCount(item.id, 1)" class="w-5 h-5 rounded bg-muji-bg hover:bg-muji-border text-muji-text font-bold text-xs flex items-center justify-center">
+                        +
+                      </button>
+                    </div>
+
+                    <div v-else class="text-muji-muted">
+                      <i class="fa-regular fa-square text-sm"></i>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Notes area -->
+              <div class="pt-4 border-t border-muji-border space-y-2">
+                <label class="block text-xs font-bold text-muji-text flex items-center gap-2">
+                  <i class="fa-solid fa-pen-to-square text-muji-muted"></i>
+                  其它補充說明欄位 (可編輯)
+                </label>
+                <textarea v-model="formData.customNotes" rows="3" 
+                          placeholder="特殊狀況補充（例如：感應水龍頭無法出水、二樓平台未 Wipe 清潔...）"
+                          class="w-full bg-muji-bg border border-muji-border rounded-xl p-3 text-xs text-muji-text focus:outline-none focus:border-muji-wood"></textarea>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: WEEKLY RANKING & QUERY ================= -->
+      <section v-if="activeTab === 'ranking'" class="space-y-6 print-area">
+        
+        <!-- Header Banner -->
+        <div class="bg-white rounded-2xl p-6 border border-muji-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-muji-amber"></i>
+              班級成績查詢與週排名報表
+            </h2>
+            <p class="text-muji-muted text-xs mt-1">
+              提供週次成績排行總覽、金銀銅榮譽榜、友善列印報表及各班級詳細扣分歷程。
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 no-print">
+            <button @click="printWeeklyReport" class="px-4 py-2 bg-muji-amber text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2">
+              <i class="fa-solid fa-print"></i> 一鍵列印報表
+            </button>
+            <button @click="exportWeeklyCSV" class="px-3.5 py-2 bg-muji-bg hover:bg-muji-border text-muji-text font-bold text-xs rounded-xl border border-muji-border transition flex items-center gap-1.5">
+              <i class="fa-solid fa-file-csv text-muji-sage"></i> 匯出週報表 CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-white rounded-2xl p-5 shadow-xs border border-muji-border space-y-4 no-print">
+          <div class="flex items-center justify-between border-b border-muji-border pb-3">
+            <h3 class="text-xs font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-filter text-muji-wood"></i> 查詢與篩選工具列
+            </h3>
+            <button @click="resetQueryFilters" class="text-xs text-muji-muted hover:text-muji-wood flex items-center gap-1">
+              <i class="fa-solid fa-rotate-left"></i> 重置條件
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-muji-muted mb-1">選擇查詢週次</label>
+              <select v-model="queryFilters.weekId" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs font-bold text-muji-text focus:outline-none">
+                <option value="ALL">🗓️ 全部週次 (全學期累計總平均)</option>
+                <option v-for="w in availableWeeks" :key="w.id" :value="w.id">{{ w.label }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-muji-muted mb-1">選擇年級</label>
+              <select v-model="queryFilters.grade" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text focus:outline-none">
+                <option value="">全部年級</option>
+                <option v-for="g in grades" :key="g" :value="g">{{ g }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-muji-muted mb-1">選擇科別</label>
+              <select v-model="queryFilters.department" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text focus:outline-none">
+                <option value="">全部科別</option>
+                <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-muji-muted mb-1">選擇班別</label>
+              <select v-model="queryFilters.className" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text focus:outline-none">
+                <option value="">全部班別 (甲/乙/丙/自訂)</option>
+                <option value="甲班">甲班</option>
+                <option value="乙班">乙班</option>
+                <option value="丙班">丙班</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 3 Podium Cards -->
+        <div v-if="weeklyRankings.length > 0" class="space-y-4">
+          <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+            <i class="fa-solid fa-award text-muji-amber"></i> {{ currentSelectedWeek?.label || '當前篩選' }} - 當週榮譽榜 (前三名)
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Rank 1 -->
+            <div v-if="weeklyRankings[0]" @click="selectClassForDetail(weeklyRankings[0])"
+                 class="bg-white rounded-2xl p-5 border-2 border-muji-amber shadow-xs relative overflow-hidden cursor-pointer hover:shadow-md transition">
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-muji-amber text-white font-extrabold text-xs">🥇 第一名 (冠軍)</span>
+                <span class="text-xs text-muji-muted">週得分</span>
+              </div>
+              <div class="text-lg font-black text-muji-text">{{ weeklyRankings[0].grade }} {{ weeklyRankings[0].department }} {{ weeklyRankings[0].className }}</div>
+              <div class="mt-3 flex items-baseline justify-between border-t border-muji-border pt-3">
+                <div class="text-2xl font-black text-muji-amber">{{ weeklyRankings[0].finalScore }} <span class="text-xs text-muji-muted font-normal">分</span></div>
+                <div class="text-right text-xs text-muji-muted">內掃: {{ weeklyRankings[0].indoorAvg }} | 外掃: {{ weeklyRankings[0].outdoorAvg }}</div>
+              </div>
+            </div>
+
+            <!-- Rank 2 -->
+            <div v-if="weeklyRankings[1]" @click="selectClassForDetail(weeklyRankings[1])"
+                 class="bg-white rounded-2xl p-5 border border-muji-border shadow-xs relative overflow-hidden cursor-pointer hover:shadow-md transition">
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-muji-slate text-white font-extrabold text-xs">🥈 第二名 (亞軍)</span>
+                <span class="text-xs text-muji-muted">週得分</span>
+              </div>
+              <div class="text-lg font-black text-muji-text">{{ weeklyRankings[1].grade }} {{ weeklyRankings[1].department }} {{ weeklyRankings[1].className }}</div>
+              <div class="mt-3 flex items-baseline justify-between border-t border-muji-border pt-3">
+                <div class="text-2xl font-black text-muji-slate">{{ weeklyRankings[1].finalScore }} <span class="text-xs text-muji-muted font-normal">分</span></div>
+                <div class="text-right text-xs text-muji-muted">內掃: {{ weeklyRankings[1].indoorAvg }} | 外掃: {{ weeklyRankings[1].outdoorAvg }}</div>
+              </div>
+            </div>
+
+            <!-- Rank 3 -->
+            <div v-if="weeklyRankings[2]" @click="selectClassForDetail(weeklyRankings[2])"
+                 class="bg-white rounded-2xl p-5 border border-muji-border shadow-xs relative overflow-hidden cursor-pointer hover:shadow-md transition">
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-muji-wood text-white font-extrabold text-xs">🥉 第三名 (季軍)</span>
+                <span class="text-xs text-muji-muted">週得分</span>
+              </div>
+              <div class="text-lg font-black text-muji-text">{{ weeklyRankings[2].grade }} {{ weeklyRankings[2].department }} {{ weeklyRankings[2].className }}</div>
+              <div class="mt-3 flex items-baseline justify-between border-t border-muji-border pt-3">
+                <div class="text-2xl font-black text-muji-wood">{{ weeklyRankings[2].finalScore }} <span class="text-xs text-muji-muted font-normal">分</span></div>
+                <div class="text-right text-xs text-muji-muted">內掃: {{ weeklyRankings[2].indoorAvg }} | 外掃: {{ weeklyRankings[2].outdoorAvg }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Ranking Table -->
+        <div class="bg-white rounded-2xl shadow-xs border border-muji-border p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-muji-border pb-3">
+            <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-list-ol text-muji-wood"></i> 週成績總排行榜
+            </h3>
+            <span class="text-xs text-muji-muted">點擊任一班級列可展開該班【扣分明細歷程】</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-muji-bg border-b border-muji-border text-[11px] font-bold text-muji-muted uppercase">
+                  <th class="py-3 px-4 text-center">名次</th>
+                  <th class="py-3 px-4">年級 / 科別 / 班別</th>
+                  <th class="py-3 px-4 text-center">內掃得分</th>
+                  <th class="py-3 px-4 text-center">外掃得分</th>
+                  <th class="py-3 px-4 text-center">總扣分數</th>
+                  <th class="py-3 px-4 text-center">最終平均</th>
+                  <th class="py-3 px-4 text-center">衛生狀態</th>
+                  <th class="py-3 px-4 text-right no-print">詳細扣分歷程</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-muji-border text-xs">
+                <tr v-if="weeklyRankings.length === 0">
+                  <td colspan="8" class="py-10 text-center text-muji-muted">無符合條件之資料</td>
+                </tr>
+
+                <tr v-for="item in weeklyRankings" :key="item.classKey" 
+                    @click="selectClassForDetail(item)"
+                    class="hover:bg-muji-bg/80 transition cursor-pointer"
+                    :class="{ 'bg-muji-bg font-extrabold': selectedClassKey === item.classKey }">
+                  <td class="py-3 px-4 text-center font-black text-muji-text">{{ item.rank }}</td>
+                  <td class="py-3 px-4 font-bold text-muji-text">
+                    {{ item.grade }} {{ item.department }}
+                    <span class="ml-1 px-2 py-0.5 rounded bg-muji-bg border border-muji-border text-muji-muted">{{ item.className }}</span>
+                  </td>
+                  <td class="py-3 px-4 text-center text-muji-muted font-semibold">{{ item.indoorAvg }} 分</td>
+                  <td class="py-3 px-4 text-center text-muji-muted font-semibold">{{ item.outdoorAvg }} 分</td>
+                  <td class="py-3 px-4 text-center font-bold text-muji-terracotta">-{{ item.totalDeductionPoints }} 分</td>
+                  <td class="py-3 px-4 text-center font-black text-muji-text">{{ item.finalScore }} 分</td>
+                  <td class="py-3 px-4 text-center">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border" :class="item.status.class">
+                      {{ item.status.label }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right no-print">
+                    <button class="px-2.5 py-1 bg-white border border-muji-border rounded-lg text-[11px] font-bold hover:bg-muji-wood hover:text-white transition">
+                      扣分明細
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Class Deduction History Breakdown -->
+        <div v-if="selectedClassDetail" class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+          <div class="flex items-center justify-between border-b border-muji-border pb-3">
+            <div>
+              <h3 class="text-base font-black text-muji-text">
+                {{ selectedClassDetail.grade }} {{ selectedClassDetail.department }} {{ selectedClassDetail.className }}
+              </h3>
+              <p class="text-xs text-muji-muted mt-0.5">當週累計扣分：-{{ selectedClassDetail.totalDeductionPoints }} 分</p>
+            </div>
+            <button @click="selectedClassKey = null" class="text-muji-muted hover:text-muji-text text-xl px-2"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div v-for="rec in selectedClassDetail.records" :key="rec.id" class="p-3.5 bg-muji-bg/60 rounded-xl border border-muji-border space-y-2">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-muji-text">{{ rec.date }} ({{ rec.taskType }})</span>
+                <span class="font-black text-muji-text">{{ rec.score }} 分</span>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <template v-for="(count, vId) in rec.violations" :key="vId">
+                  <span v-if="count > 0" class="px-2 py-0.5 bg-red-50 text-muji-terracotta border border-muji-terracotta/30 text-[11px] font-bold rounded">
+                    {{ getViolationName(vId) }} x{{ count }}
+                  </span>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 3: TODAY'S TASKS ================= -->
+      <section v-if="activeTab === 'tasks'" class="space-y-6">
+        <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-muji-border pb-4">
+            <div>
+              <h2 class="text-lg font-black text-muji-text flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-muji-wood"></i> 今日任務：內掃及外掃進度
+              </h2>
+              <p class="text-xs text-muji-muted mt-0.5">追蹤本日全校各區域評分完成狀態</p>
+            </div>
+
+            <div class="flex p-1 bg-muji-bg rounded-xl border border-muji-border space-x-1">
+              <button @click="taskCategoryFilter = 'ALL'" :class="taskCategoryFilter === 'ALL' ? 'bg-white font-extrabold shadow-xs' : 'text-muji-muted'" class="px-3 py-1 text-xs rounded-lg transition">全部</button>
+              <button @click="taskCategoryFilter = '內掃檢查'" :class="taskCategoryFilter === '內掃檢查' ? 'bg-white font-extrabold shadow-xs text-muji-sage' : 'text-muji-muted'" class="px-3 py-1 text-xs rounded-lg transition">內掃</button>
+              <button @click="taskCategoryFilter = '外掃檢查'" :class="taskCategoryFilter === '外掃檢查' ? 'bg-white font-extrabold shadow-xs text-muji-amber' : 'text-muji-muted'" class="px-3 py-1 text-xs rounded-lg transition">外掃</button>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="bg-muji-bg rounded-2xl p-4 border border-muji-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="text-xs text-muji-muted font-bold">今日完成進度</div>
+              <div class="text-2xl font-black text-muji-text mt-0.5">{{ todayTaskStats.percent }}% <span class="text-xs text-muji-muted font-normal">( {{ todayTaskStats.completedCount }} / {{ todayTaskStats.totalCount }} 項 )</span></div>
+            </div>
+            <div class="w-full sm:w-1/2 bg-white rounded-full h-3 border border-muji-border overflow-hidden">
+              <div class="h-3 bg-muji-wood rounded-full transition-all duration-300" :style="{ width: todayTaskStats.percent + '%' }"></div>
+            </div>
+          </div>
+
+          <!-- Pending Tasks List -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-black text-muji-text">⏳ 尚未檢查班級區域 (共 {{ filteredPendingTasks.length }} 區)</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div v-for="task in filteredPendingTasks" :key="task.id" class="p-3.5 bg-muji-bg/60 rounded-xl border border-muji-border flex items-center justify-between">
+                <div>
+                  <div class="font-bold text-xs text-muji-text">{{ task.grade }} {{ task.department }} {{ task.className }}</div>
+                  <div class="text-[11px] text-muji-muted mt-0.5">{{ task.zoneName }}</div>
+                </div>
+                <button @click="quickStartTask(task)" class="px-3 py-1 bg-muji-wood text-white font-bold text-xs rounded-lg hover:bg-opacity-90 transition">
+                  評分
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: HISTORY RECORDS ================= -->
+      <section v-if="activeTab === 'history'" class="space-y-6">
+        <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-muji-border pb-3">
+            <h2 class="text-lg font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-box-archive text-muji-wood"></i> 歷史評分紀錄管理
+            </h2>
+            <div class="flex gap-2">
+              <button @click="exportCSV" class="px-3 py-1.5 bg-muji-bg border border-muji-border rounded-xl text-xs font-bold text-muji-text hover:bg-white">匯出 CSV</button>
+              <button @click="exportJSON" class="px-3 py-1.5 bg-muji-bg border border-muji-border rounded-xl text-xs font-bold text-muji-text hover:bg-white">備份 JSON</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-muji-bg border-b border-muji-border font-bold text-muji-muted">
+                  <th class="py-2.5 px-4">日期</th>
+                  <th class="py-2.5 px-4">類別</th>
+                  <th class="py-2.5 px-4">班別</th>
+                  <th class="py-2.5 px-4 text-center">得分</th>
+                  <th class="py-2.5 px-4">評分員</th>
+                  <th class="py-2.5 px-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-muji-border">
+                <tr v-for="r in filteredRecords" :key="r.id" class="hover:bg-muji-bg/60">
+                  <td class="py-2.5 px-4 font-bold text-muji-text">{{ r.date }}</td>
+                  <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded bg-muji-bg border border-muji-border font-bold">{{ r.taskType }}</span></td>
+                  <td class="py-2.5 px-4 font-bold">{{ r.grade }} {{ r.department }} {{ r.className }}</td>
+                  <td class="py-2.5 px-4 text-center font-black">{{ r.score }} 分</td>
+                  <td class="py-2.5 px-4 text-muji-muted">{{ r.inspectorName }}</td>
+                  <td class="py-2.5 px-4 text-right">
+                    <button @click="openEditModal(r)" class="text-muji-muted hover:text-muji-wood mr-2"><i class="fa-solid fa-pen"></i></button>
+                    <button @click="confirmDeleteRecord(r.id)" class="text-muji-muted hover:text-muji-terracotta"><i class="fa-solid fa-trash"></i></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: LEADER HUB (組長ㄉ窩) ================= -->
+      <section v-if="activeTab === 'leaderHub'" class="space-y-6">
+        
+        <!-- Leader Hub Header Banner -->
+        <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-crown text-muji-amber"></i>
+              組長ㄉ窩 (衛糾幹部與管理者專區)
+            </h2>
+            <p class="text-muji-muted text-xs mt-1">
+              提供組長廣播發布、衛糾隊員每日出勤點名、服務時數發放，以及全校統計儀表板與系統設定。
+            </p>
+          </div>
+          
+          <div class="flex items-center gap-2 text-xs font-bold bg-muji-bg text-muji-wood px-3 py-1.5 rounded-xl border border-muji-border">
+            <i class="fa-solid fa-user-shield"></i> 幹部管理模式
+          </div>
+        </div>
+
+        <!-- Sub-navigation Bar -->
+        <div class="flex flex-wrap p-1.5 bg-white rounded-2xl border border-muji-border shadow-xs gap-1 text-xs">
+          <button @click="switchLeaderSubTab('broadcast')" 
+                  :class="leaderSubTab === 'broadcast' ? 'bg-muji-wood text-white font-black' : 'text-muji-muted hover:bg-muji-bg'"
+                  class="px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-bullhorn"></i> 📢 組長廣播與重點
+          </button>
+          
+          <button @click="switchLeaderSubTab('attendance')" 
+                  :class="leaderSubTab === 'attendance' ? 'bg-muji-wood text-white font-black' : 'text-muji-muted hover:bg-muji-bg'"
+                  class="px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-user-check"></i> 📋 出勤點名
+          </button>
+          
+          <button @click="switchLeaderSubTab('hours')" 
+                  :class="leaderSubTab === 'hours' ? 'bg-muji-wood text-white font-black' : 'text-muji-muted hover:bg-muji-bg'"
+                  class="px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-clock"></i> ⏱️ 服務時數發放
+          </button>
+
+          <button @click="switchLeaderSubTab('dashboard')" 
+                  :class="leaderSubTab === 'dashboard' ? 'bg-muji-wood text-white font-black' : 'text-muji-muted hover:bg-muji-bg'"
+                  class="px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-pie"></i> 📊 統計儀表板
+          </button>
+
+          <button @click="switchLeaderSubTab('settings')" 
+                  :class="leaderSubTab === 'settings' ? 'bg-muji-wood text-white font-black' : 'text-muji-muted hover:bg-muji-bg'"
+                  class="px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-gears"></i> ⚙️ 系統設定
+          </button>
+        </div>
+
+        <!-- SUB 1: BROADCAST EDITOR -->
+        <div v-if="leaderSubTab === 'broadcast'" class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+          <div class="flex items-center justify-between border-b border-muji-border pb-3">
+            <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+              <i class="fa-solid fa-bullhorn text-muji-amber"></i> 組長廣播與衛糾檢查重點編輯
+            </h3>
+            <span class="text-xs text-muji-muted">更新將即時同步顯示於全站首頁對話框</span>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-muji-muted mb-1">廣播標題 / 主旨</label>
+              <input type="text" v-model="broadcastForm.title" placeholder="例如：📢 本週衛糾點名與檢查重點" class="w-full bg-muji-bg border border-muji-border rounded-xl px-3 py-2 text-xs text-muji-text font-bold focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-muji-muted mb-1">公告與重點內文 (支援分行與條列)</label>
+              <textarea v-model="broadcastForm.content" rows="5" placeholder="輸入給評分員的衛糾重點提示..." class="w-full bg-muji-bg border border-muji-border rounded-xl p-3 text-xs text-muji-text font-medium focus:outline-none"></textarea>
+            </div>
+
+            <div class="flex justify-end">
+              <button @click="saveBroadcastNotice" class="px-5 py-2.5 bg-muji-wood hover:bg-opacity-90 text-white font-black text-xs rounded-xl shadow-xs transition flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i> 發布並更新對話框
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB 2: ATTENDANCE ROLL CALL -->
+        <div v-if="leaderSubTab === 'attendance'" class="space-y-6">
+          <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-muji-border pb-3">
+              <div>
+                <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+                  <i class="fa-solid fa-user-check text-muji-sage"></i> 衛糾人員每日出勤點名
+                </h3>
+                <p class="text-xs text-muji-muted mt-0.5">點名紀錄將連動服務時數一鍵核發機制</p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <input type="date" v-model="attendanceDate" class="bg-muji-bg border border-muji-border rounded-xl px-3 py-1.5 text-xs font-bold text-muji-text">
+                <button @click="batchAllPresent" class="px-3 py-1.5 bg-muji-bg hover:bg-muji-border text-muji-text font-bold text-xs rounded-xl border border-muji-border transition">
+                  <i class="fa-solid fa-check-double"></i> 一鍵全員預設到勤
+                </button>
+              </div>
+            </div>
+
+            <!-- Attendance Stats Summary -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-muji-bg p-3.5 rounded-xl border border-muji-border text-xs">
+              <div class="text-center">
+                <span class="text-muji-muted block text-[11px]">到勤人數</span>
+                <span class="text-base font-black text-muji-sage">{{ attendanceSummary.present }} 人</span>
+              </div>
+              <div class="text-center">
+                <span class="text-muji-muted block text-[11px]">遲到人數</span>
+                <span class="text-base font-black text-muji-amber">{{ attendanceSummary.late }} 人</span>
+              </div>
+              <div class="text-center">
+                <span class="text-muji-muted block text-[11px]">缺席人數</span>
+                <span class="text-base font-black text-muji-terracotta">{{ attendanceSummary.absent }} 人</span>
+              </div>
+              <div class="text-center">
+                <span class="text-muji-muted block text-[11px]">公假/請假</span>
+                <span class="text-base font-black text-muji-slate">{{ attendanceSummary.leave }} 人</span>
+              </div>
+              <div class="text-center col-span-2 sm:col-span-1">
+                <span class="text-muji-muted block text-[11px]">點名完成率</span>
+                <span class="text-base font-black text-muji-wood">{{ attendanceSummary.rate }}%</span>
+              </div>
+            </div>
+
+            <!-- Roll Call Table -->
+            <div class="border border-muji-border rounded-xl overflow-hidden">
+              <table class="w-full text-left border-collapse">
+                <thead class="bg-muji-bg text-[11px] font-bold text-muji-muted uppercase">
+                  <tr>
+                    <th class="py-3 px-4">人員</th>
+                    <th class="py-3 px-4">職稱</th>
+                    <th class="py-3 px-4 text-center">出勤狀態</th>
+                    <th class="py-3 px-4">備註</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-muji-border text-xs">
+                  <tr v-for="ins in inspectors" :key="ins.id" class="hover:bg-muji-bg/60">
+                    <td class="py-3 px-4 font-black text-muji-text">{{ ins.name }}</td>
+                    <td class="py-3 px-4 text-muji-muted font-medium">{{ ins.role }}</td>
+                    <td class="py-3 px-4 text-center">
+                      <div class="inline-flex p-0.5 bg-muji-bg rounded-lg space-x-1 border border-muji-border">
+                        <button @click="setAttendance(ins.id, '到勤')" 
+                                :class="getAttendanceStatus(ins.id) === '到勤' ? 'bg-muji-sage text-white font-bold' : 'text-muji-muted'"
+                                class="px-2.5 py-1 rounded text-[11px] transition">到勤</button>
+                        <button @click="setAttendance(ins.id, '遲到')" 
+                                :class="getAttendanceStatus(ins.id) === '遲到' ? 'bg-muji-amber text-white font-bold' : 'text-muji-muted'"
+                                class="px-2.5 py-1 rounded text-[11px] transition">遲到</button>
+                        <button @click="setAttendance(ins.id, '缺席')" 
+                                :class="getAttendanceStatus(ins.id) === '缺席' ? 'bg-muji-terracotta text-white font-bold' : 'text-muji-muted'"
+                                class="px-2.5 py-1 rounded text-[11px] transition">缺席</button>
+                        <button @click="setAttendance(ins.id, '公假')" 
+                                :class="getAttendanceStatus(ins.id) === '公假' ? 'bg-muji-slate text-white font-bold' : 'text-muji-muted'"
+                                class="px-2.5 py-1 rounded text-[11px] transition">公假</button>
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <input type="text" :value="getAttendanceNote(ins.id)" @input="setAttendanceNote(ins.id, $event.target.value)" placeholder="如：晚到10分鐘..." class="w-full bg-muji-bg border border-muji-border rounded-lg px-2.5 py-1 text-xs text-muji-text">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button @click="saveAttendanceLogs" class="px-5 py-2.5 bg-muji-wood hover:bg-opacity-90 text-white font-black text-xs rounded-xl shadow-xs transition flex items-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> 儲存今日點名紀錄
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB 3: SERVICE HOURS DISTRIBUTION -->
+        <div v-if="leaderSubTab === 'hours'" class="space-y-6">
+          <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-muji-border pb-3">
+              <div>
+                <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+                  <i class="fa-solid fa-clock text-muji-slate"></i> 衛糾服務時數發放與登錄
+                </h3>
+                <p class="text-xs text-muji-muted mt-0.5">個別核發或一鍵發放給今日點名「到勤」之隊員 (每次 0.5 小時)</p>
+              </div>
+
+              <button @click="batchIssueHoursForToday" class="px-3.5 py-2 bg-muji-wood hover:bg-opacity-90 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+                <i class="fa-solid fa-bolt"></i> 一鍵核發今日到勤者時數 (各 0.5 小時)
+              </button>
+            </div>
+
+            <!-- Single Issue Form -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-muji-bg p-4 rounded-xl border border-muji-border">
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">衛糾人員</label>
+                <select v-model="serviceHourForm.inspectorId" class="w-full bg-white border border-muji-border rounded-xl px-3 py-1.5 text-xs text-muji-text font-bold">
+                  <option value="" disabled>-- 選擇人員 --</option>
+                  <option v-for="ins in inspectors" :key="ins.id" :value="ins.id">{{ ins.name }} ({{ ins.role }})</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">發放日期</label>
+                <input type="date" v-model="serviceHourForm.date" class="w-full bg-white border border-muji-border rounded-xl px-3 py-1.5 text-xs text-muji-text font-bold">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">核發時數 (小時)</label>
+                <input type="number" v-model.number="serviceHourForm.hours" min="0.5" step="0.5" max="10" class="w-full bg-white border border-muji-border rounded-xl px-3 py-1.5 text-xs text-muji-text font-bold">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-muji-muted mb-1">勤務事由 / 說明</label>
+                <div class="flex gap-2">
+                  <input type="text" v-model="serviceHourForm.reason" placeholder="如：執行衛糾環境督導評分" class="flex-1 bg-white border border-muji-border rounded-xl px-3 py-1.5 text-xs text-muji-text font-medium">
+                  <button @click="addServiceHour" class="px-3 py-1.5 bg-muji-wood hover:bg-opacity-90 text-white text-xs font-bold rounded-xl shrink-0">發放</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Log Table -->
+            <div class="space-y-3 pt-2">
+              <div class="flex justify-between items-center">
+                <h4 class="text-xs font-black text-muji-text">服務時數發放紀錄清冊 (共 {{ serviceHoursList.length }} 筆)</h4>
+                <button @click="exportHoursCSV" class="text-xs text-muji-wood font-bold hover:underline flex items-center gap-1">
+                  <i class="fa-solid fa-file-csv"></i> 匯出服務時數清冊 CSV
+                </button>
+              </div>
+
+              <div class="border border-muji-border rounded-xl overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                  <thead class="bg-muji-bg text-[11px] font-bold text-muji-muted uppercase">
+                    <tr>
+                      <th class="py-2.5 px-4">發放日期</th>
+                      <th class="py-2.5 px-4">衛糾人員</th>
+                      <th class="py-2.5 px-4 text-center">核發時數</th>
+                      <th class="py-2.5 px-4">勤務事由</th>
+                      <th class="py-2.5 px-4 text-right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-muji-border text-xs">
+                    <tr v-if="serviceHoursList.length === 0">
+                      <td colspan="5" class="py-8 text-center text-muji-muted">尚無發放紀錄</td>
+                    </tr>
+                    <tr v-for="sh in serviceHoursList" :key="sh.id" class="hover:bg-muji-bg/60">
+                      <td class="py-2.5 px-4 font-bold text-muji-text">{{ sh.date }}</td>
+                      <td class="py-2.5 px-4 font-black text-muji-text">{{ sh.inspectorName }}</td>
+                      <td class="py-2.5 px-4 text-center">
+                        <span class="px-2.5 py-0.5 rounded-full bg-muji-bg border border-muji-border text-muji-wood font-black text-xs">+{{ sh.hours }} 小時</span>
+                      </td>
+                      <td class="py-2.5 px-4 text-muji-muted font-medium">{{ sh.reason }}</td>
+                      <td class="py-2.5 px-4 text-right">
+                        <button @click="deleteServiceHour(sh.id)" class="text-muji-muted hover:text-muji-terracotta">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SUB 4: DASHBOARD ANALYTICS -->
+        <div v-if="leaderSubTab === 'dashboard'" class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-muji-border flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-muji-muted">全校平均得分</p>
+                <h3 class="text-2xl font-black text-muji-text mt-1">{{ stats.avgScore }} <span class="text-xs font-normal text-muji-muted">分</span></h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-muji-bg text-muji-wood flex items-center justify-center text-lg border border-muji-border">
+                <i class="fa-solid fa-star"></i>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-muji-border flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-muji-muted">內掃 vs 外掃均分</p>
+                <h3 class="text-lg font-black text-muji-text mt-1">
+                  <span class="text-muji-sage">{{ stats.indoorAvg }}</span> / <span class="text-muji-amber">{{ stats.outdoorAvg }}</span>
+                </h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-muji-bg text-muji-wood flex items-center justify-center text-lg border border-muji-border">
+                <i class="fa-solid fa-code-compare"></i>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-muji-border flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-muji-muted">最佳環境科別</p>
+                <h3 class="text-lg font-black text-muji-sage mt-1 truncate max-w-[120px]">{{ stats.bestDept }}</h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-muji-bg text-muji-sage flex items-center justify-center text-lg border border-muji-border">
+                <i class="fa-solid fa-trophy"></i>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-muji-border flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold text-muji-muted">最高頻扣分項目</p>
+                <h3 class="text-sm font-black text-muji-terracotta mt-1 truncate max-w-[120px]">{{ stats.topViolation }}</h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-muji-bg text-muji-terracotta flex items-center justify-center text-lg border border-muji-border">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+              <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+                <i class="fa-solid fa-chart-column text-muji-wood"></i> 各科別環境評分排行榜
+              </h3>
+              <div class="h-64 relative">
+                <canvas id="deptChart"></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+              <h3 class="text-sm font-black text-muji-text flex items-center gap-2">
+                <i class="fa-solid fa-chart-bar text-muji-terracotta"></i> 常犯扣分缺點熱門統計
+              </h3>
+              <div class="h-64 relative">
+                <canvas id="violationChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB 5: SYSTEM SETTINGS -->
+        <div v-if="leaderSubTab === 'settings'" class="space-y-6">
+          <div class="bg-white rounded-2xl p-6 shadow-xs border border-muji-border space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-muji-border pb-4">
+              <div>
+                <h2 class="text-base font-black text-muji-text flex items-center gap-2">
+                  <i class="fa-solid fa-gears text-muji-wood"></i> 系統資料庫編輯管理
+                </h2>
+                <p class="text-xs text-muji-muted mt-0.5">修改評分人員、檢查扣分權重與學校組織架構</p>
+              </div>
+
+              <div class="flex p-1 bg-muji-bg rounded-xl border border-muji-border space-x-1 text-xs">
+                <button @click="settingsTab = 'inspectors'" 
+                        :class="settingsTab === 'inspectors' ? 'bg-white font-extrabold shadow-xs text-muji-text' : 'text-muji-muted'"
+                        class="px-3 py-1.5 rounded-lg transition">評分員 DB</button>
+                <button @click="settingsTab = 'violations'" 
+                        :class="settingsTab === 'violations' ? 'bg-white font-extrabold shadow-xs text-muji-text' : 'text-muji-muted'"
+                        class="px-3 py-1.5 rounded-lg transition">扣分項目</button>
+                <button @click="settingsTab = 'structure'" 
+                        :class="settingsTab === 'structure' ? 'bg-white font-extrabold shadow-xs text-muji-text' : 'text-muji-muted'"
+                        class="px-3 py-1.5 rounded-lg transition">年級/科別</button>
+              </div>
+            </div>
+
+            <!-- INSPECTORS DB -->
+            <div v-if="settingsTab === 'inspectors'" class="space-y-4">
+              <div class="flex justify-between items-center">
+                <h3 class="text-xs font-black text-muji-text">評分人員清單與驗證密碼設定</h3>
+                <button @click="openInspectorModal()" class="px-3 py-1.5 text-xs bg-muji-wood hover:bg-opacity-90 text-white font-bold rounded-xl transition flex items-center gap-1">
+                  <i class="fa-solid fa-user-plus"></i> 新增評分員
+                </button>
+              </div>
+
+              <div class="border border-muji-border rounded-xl overflow-hidden">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead class="bg-muji-bg text-[11px] font-bold text-muji-muted uppercase">
+                    <tr>
+                      <th class="py-2.5 px-4">人員 ID</th>
+                      <th class="py-2.5 px-4">姓名</th>
+                      <th class="py-2.5 px-4">職稱</th>
+                      <th class="py-2.5 px-4">PIN 碼</th>
+                      <th class="py-2.5 px-4 text-right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-muji-border">
+                    <tr v-for="ins in inspectors" :key="ins.id" class="hover:bg-muji-bg/60">
+                      <td class="py-2.5 px-4 font-mono text-muji-muted">{{ ins.id }}</td>
+                      <td class="py-2.5 px-4 font-bold text-muji-text">{{ ins.name }}</td>
+                      <td class="py-2.5 px-4 text-muji-muted">{{ ins.role }}</td>
+                      <td class="py-2.5 px-4 font-mono text-muji-wood font-extrabold">{{ ins.pin }}</td>
+                      <td class="py-2.5 px-4 text-right">
+                        <button @click="openInspectorModal(ins)" class="text-muji-muted hover:text-muji-wood mr-2"><i class="fa-solid fa-pen"></i></button>
+                        <button @click="deleteInspector(ins.id)" class="text-muji-muted hover:text-muji-terracotta"><i class="fa-solid fa-trash"></i></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- VIOLATIONS DB -->
+            <div v-if="settingsTab === 'violations'" class="space-y-4">
+              <div class="flex justify-between items-center">
+                <h3 class="text-xs font-black text-muji-text">檢查扣分項目編輯與權重</h3>
+                <button @click="openViolationModal()" class="px-3 py-1.5 text-xs bg-muji-wood hover:bg-opacity-90 text-white font-bold rounded-xl transition flex items-center gap-1">
+                  <i class="fa-solid fa-plus"></i> 新增扣分項目
+                </button>
+              </div>
+
+              <div class="border border-muji-border rounded-xl overflow-hidden">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead class="bg-muji-bg text-[11px] font-bold text-muji-muted uppercase">
+                    <tr>
+                      <th class="py-2.5 px-4">歸屬</th>
+                      <th class="py-2.5 px-4">項目名稱</th>
+                      <th class="py-2.5 px-4">扣分</th>
+                      <th class="py-2.5 px-4">標準說明</th>
+                      <th class="py-2.5 px-4 text-right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-muji-border">
+                    <tr v-for="v in violationTypes" :key="v.id" class="hover:bg-muji-bg/60">
+                      <td class="py-2.5 px-4">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border border-muji-border"
+                              :class="v.category === 'indoor' ? 'bg-muji-bg text-muji-sage' : 'bg-muji-bg text-muji-amber'">
+                          {{ v.category === 'indoor' ? '內掃' : '外掃' }}
+                        </span>
+                      </td>
+                      <td class="py-2.5 px-4 font-bold text-muji-text">{{ v.name }}</td>
+                      <td class="py-2.5 px-4 font-black text-muji-terracotta">-{{ v.points }} 分</td>
+                      <td class="py-2.5 px-4 text-muji-muted">{{ v.description }}</td>
+                      <td class="py-2.5 px-4 text-right">
+                        <button @click="openViolationModal(v)" class="text-muji-muted hover:text-muji-wood mr-2"><i class="fa-solid fa-pen"></i></button>
+                        <button @click="deleteViolation(v.id)" class="text-muji-muted hover:text-muji-terracotta"><i class="fa-solid fa-trash"></i></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- STRUCTURE -->
+            <div v-if="settingsTab === 'structure'" class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+              <div class="space-y-3">
+                <h3 class="font-black text-muji-text">科別清單維護</h3>
+                <div class="flex gap-2">
+                  <input type="text" v-model="newDeptName" placeholder="新增科別名稱" class="flex-1 bg-muji-bg border border-muji-border rounded-xl px-3 py-1.5 text-xs text-muji-text">
+                  <button @click="addDepartment" class="px-3 py-1.5 bg-muji-wood text-white text-xs font-bold rounded-xl">新增</button>
+                </div>
+                <ul class="divide-y border border-muji-border rounded-xl overflow-hidden bg-white max-h-60 overflow-y-auto">
+                  <li v-for="(dept, idx) in departments" :key="dept" class="p-2.5 flex justify-between items-center hover:bg-muji-bg">
+                    <span class="font-bold text-muji-text">{{ dept }}</span>
+                    <button @click="removeDepartment(idx)" class="text-muji-muted hover:text-muji-terracotta"><i class="fa-solid fa-xmark"></i></button>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="space-y-3">
+                <h3 class="font-black text-muji-text">年級清單維護</h3>
+                <div class="flex gap-2">
+                  <input type="text" v-model="newGradeName" placeholder="新增年級名稱" class="flex-1 bg-muji-bg border border-muji-border rounded-xl px-3 py-1.5 text-xs text-muji-text">
+                  <button @click="addGrade" class="px-3 py-1.5 bg-muji-wood text-white text-xs font-bold rounded-xl">新增</button>
+                </div>
+                <ul class="divide-y border border-muji-border rounded-xl overflow-hidden bg-white max-h-60 overflow-y-auto">
+                  <li v-for="(g, idx) in grades" :key="g" class="p-2.5 flex justify-between items-center hover:bg-muji-bg">
+                    <span class="font-bold text-muji-text">{{ g }}</span>
+                    <button @click="removeGrade(idx)" class="text-muji-muted hover:text-muji-terracotta"><i class="fa-solid fa-xmark"></i></button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Reset Button -->
+          <div class="bg-white border border-muji-border rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 class="text-xs font-black text-muji-terracotta flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> 重置系統資料庫至預設狀態
+              </h4>
+              <p class="text-xs text-muji-muted mt-0.5">重置回包含各科別、班別與週範例評分紀錄</p>
+            </div>
+            <button @click="resetToDefaultData" class="px-4 py-2 bg-muji-terracotta hover:bg-opacity-90 text-white text-xs font-bold rounded-xl transition">
+              <i class="fa-solid fa-rotate"></i> 重置預設資料庫
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-muji-border text-muji-muted text-xs py-6 mt-auto no-print">
+      <div class="max-w-7xl mx-auto px-4 text-center space-y-1 font-medium">
+        <p>衛糾底家 - 校園環境評分系統 &copy; 2026 MUJI Style Campus Inspection System</p>
+        <p class="text-[11px] text-muji-muted/80">機加科 · 電修科 · 營造科 · 模具科 · 機械科 · 電機科 · 製圖科 · 室設科 · 建築科 (組長ㄉ窩專區)</p>
+      </div>
+    </footer>
+
+    <!-- Modals -->
+    <div v-if="editingRecord" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-muji-border space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="font-black text-muji-text text-sm">修改評分紀錄</h3>
+          <button @click="editingRecord = null" class="text-muji-muted"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold mb-1">日期</label>
+              <input type="date" v-model="editingRecord.date" class="w-full border rounded-xl p-2 bg-muji-bg">
+            </div>
+            <div>
+              <label class="block font-bold mb-1">類別</label>
+              <select v-model="editingRecord.taskType" class="w-full border rounded-xl p-2 bg-muji-bg">
+                <option value="內掃檢查">內掃檢查</option>
+                <option value="外掃檢查">外掃檢查</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">說明</label>
+            <textarea v-model="editingRecord.notes" rows="3" class="w-full border rounded-xl p-2 bg-muji-bg"></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 border-t pt-2">
+          <button @click="editingRecord = null" class="px-3 py-1.5 bg-muji-bg text-muji-muted rounded-xl text-xs font-bold">取消</button>
+          <button @click="saveEditedRecord" class="px-4 py-1.5 bg-muji-wood text-white rounded-xl text-xs font-bold">儲存修改</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspector Modal -->
+    <div v-if="showInspectorModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-muji-border space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="font-black text-muji-text text-sm">{{ inspectorForm.id ? '編輯評分人員' : '新增評分人員' }}</h3>
+          <button @click="showInspectorModal = false" class="text-muji-muted"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold mb-1">姓名</label>
+            <input type="text" v-model="inspectorForm.name" placeholder="如: 張哲銘" class="w-full border rounded-xl p-2 bg-muji-bg">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">職稱</label>
+            <input type="text" v-model="inspectorForm.role" placeholder="如: 衛生組長" class="w-full border rounded-xl p-2 bg-muji-bg">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">驗證 PIN 碼</label>
+            <input type="text" v-model="inspectorForm.pin" placeholder="4位密碼" class="w-full border rounded-xl p-2 bg-muji-bg">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 border-t pt-2">
+          <button @click="showInspectorModal = false" class="px-3 py-1.5 bg-muji-bg text-muji-muted rounded-xl text-xs font-bold">取消</button>
+          <button @click="saveInspector" class="px-4 py-1.5 bg-muji-wood text-white rounded-xl text-xs font-bold">儲存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Violation Modal -->
+    <div v-if="showViolationModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-muji-border space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="font-black text-muji-text text-sm">{{ violationForm.id ? '編輯扣分項目' : '新增扣分項目' }}</h3>
+          <button @click="showViolationModal = false" class="text-muji-muted"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold mb-1">歸屬類別</label>
+            <select v-model="violationForm.category" class="w-full border rounded-xl p-2 bg-muji-bg">
+              <option value="indoor">內掃檢查</option>
+              <option value="outdoor">外掃檢查</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">項目名稱</label>
+            <input type="text" v-model="violationForm.name" placeholder="如: 沒拖地" class="w-full border rounded-xl p-2 bg-muji-bg">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">扣分 (固定 1 分)</label>
+            <input type="number" v-model.number="violationForm.points" min="1" placeholder="如 1" class="w-full border rounded-xl p-2 bg-muji-bg">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">說明</label>
+            <input type="text" v-model="violationForm.description" placeholder="扣分說明" class="w-full border rounded-xl p-2 bg-muji-bg">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 border-t pt-2">
+          <button @click="showViolationModal = false" class="px-3 py-1.5 bg-muji-bg text-muji-muted rounded-xl text-xs font-bold">取消</button>
+          <button @click="saveViolation" class="px-4 py-1.5 bg-muji-wood text-white rounded-xl text-xs font-bold">儲存</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Main Vue Application Script -->
+  <script>
+    const { createApp, ref, computed, reactive, watch, onMounted, nextTick } = Vue;
+
+    const DEFAULT_INSPECTORS = [
+      { id: 'INS-101', name: '張哲銘', role: '衛生組長', pin: '1234' },
+      { id: 'INS-102', name: '林雅婷', role: '衛糾隊長', pin: '5678' },
+      { id: 'INS-103', name: '陳建宏', role: '衛糾幹部', pin: '8888' },
+      { id: 'INS-104', name: '許美玲', role: '學務處評分員', pin: '2468' }
+    ];
+
+    const DEFAULT_DEPARTMENTS = ['機加科', '電修科', '營造科', '模具科', '機械科', '電機科', '製圖科', '室設科', '建築科'];
+    const DEFAULT_GRADES = ['一年級', '二年級', '三年級'];
+
+    const DEFAULT_BROADCAST = {
+      title: '📢 本週衛糾點名與檢查重點公告',
+      content: '1. 外掃區便斗與洗手台每日需澈底刷洗乾淨。\n2. 走廊「沒拖地」與落葉水溝積水為本週重點扣分項目。\n3. 請全體衛糾隊員執勤前完成 PIN 碼身份驗證！',
+      updatedAt: '2026-11-10 08:00'
+    };
+
+    const DEFAULT_SERVICE_HOURS = [
+      { id: 'SH-1', inspectorId: 'INS-101', inspectorName: '張哲銘', date: '2026-11-09', hours: 0.5, reason: '執行全校衛糾環境大掃除督導' },
+      { id: 'SH-2', inspectorId: 'INS-102', inspectorName: '林雅婷', date: '2026-11-09', hours: 0.5, reason: '執行外掃區重點衛生督導勤務' }
+    ];
+
+    const DEFAULT_VIOLATIONS = [
+      // 1. 內掃區域 (10項 + 其它)
+      { id: 'V-IN-01', category: 'indoor', name: '人工垃圾', points: 1, description: '地面走廊拋棄紙屑鋁箔包垃圾' },
+      { id: 'V-IN-05', category: 'indoor', name: '沒拖地', points: 1, description: '地板油垢鞋印明顯未澈底拖洗乾淨' },
+      { id: 'V-IN-06', category: 'indoor', name: '地面', points: 1, description: '地面灰塵砂粒或污垢明顯未掃除' },
+      { id: 'V-IN-07', category: 'indoor', name: '垃圾桶清理', points: 1, description: '教室垃圾桶爆滿未倒或未清理' },
+      { id: 'V-IN-08', category: 'indoor', name: '垃圾分類', points: 1, description: '一般垃圾與回收物未分類擺放' },
+      { id: 'V-IN-09', category: 'indoor', name: '窗戶', points: 1, description: '窗戶玻璃油污或窗台積塵過厚' },
+      { id: 'V-IN-10', category: 'indoor', name: '桌椅擺放', points: 1, description: '放學或放假桌椅未排列整齊對齊' },
+      { id: 'V-IN-11', category: 'indoor', name: '黑板(板溝)', points: 1, description: '黑板未擦拭乾淨或板溝灰塵積厚' },
+      { id: 'V-IN-12', category: 'indoor', name: '講桌', points: 1, description: '講桌雜物凌亂或表面油漬髒污' },
+      { id: 'V-IN-13', category: 'indoor', name: '餐盤區域(餐桶歸位/清潔)', points: 1, description: '午餐餐桶未歸位或餐盤堆放殘渣未清' },
+
+      // 2. 外掃區域 (8項 + 其它)
+      { id: 'V-OUT-00a', category: 'outdoor', name: '掃具未歸定位', points: 1, description: '掃把拖把未晾乾整齊掛置於掃具架' },
+      { id: 'V-OUT-00b', category: 'outdoor', name: '便斗/便池未刷', points: 1, description: '小便斗或便池尿垢污漬未徹底刷洗' },
+      { id: 'V-OUT-00c', category: 'outdoor', name: '平台/感測器未擦拭', points: 1, description: '洗手台水槽平台積水髒污未擦乾' },
+      { id: 'V-OUT-01', category: 'outdoor', name: '垃圾未清理', points: 1, description: '室外掃區積累落葉或塑膠垃圾未清' },
+      { id: 'V-OUT-02', category: 'outdoor', name: '懸掛垃圾沒清理', points: 1, description: '樹枝、花圃或圍欄掛有塑膠袋卡住' },
+      { id: 'V-OUT-03', category: 'outdoor', name: '洗手台', points: 1, description: '室外洗手台殘渣堵塞或檯面髒污' },
+      { id: 'V-OUT-04', category: 'outdoor', name: '花圃', points: 1, description: '花圃內雜草遺留或人為垃圾棄置' },
+      { id: 'V-OUT-05', category: 'outdoor', name: '水溝', points: 1, description: '溝渠淤積泥沙殘渣或水溝蓋積樹葉' }
+    ];
+
+    const DEFAULT_RECORDS = [
+      { id: 'REC-20261110-01', date: '2026-11-10', taskType: '內掃檢查', grade: '一年級', department: '機械科', className: '甲班', score: 99, inspectorName: '張哲銘', violations: { 'V-IN-06': 1 }, notes: '地面角落有微量沙粒' },
+      { id: 'REC-20261110-02', date: '2026-11-10', taskType: '外掃檢查', grade: '一年級', department: '機械科', className: '甲班', score: 98, inspectorName: '林雅婷', violations: { 'V-OUT-00a': 1, 'V-OUT-03': 1 }, notes: '掃具未晾乾掛好' },
+      { id: 'REC-20261110-03', date: '2026-11-10', taskType: '內掃檢查', grade: '二年級', department: '電機科', className: '乙班', score: 98, inspectorName: '陳建宏', violations: { 'V-IN-05': 1, 'V-IN-01': 1 }, notes: '走廊有拋棄飲料紙杯' },
+      { id: 'REC-20261110-04', date: '2026-11-10', taskType: '外掃檢查', grade: '二年級', department: '電機科', className: '乙班', score: 97, inspectorName: '許美玲', violations: { 'V-OUT-00b': 1, 'V-OUT-00c': 1, 'V-OUT-04': 1 }, notes: '小便池尿垢未徹底刷洗' },
+      { id: 'REC-20261109-01', date: '2026-11-09', taskType: '內掃檢查', grade: '三年級', department: '建築科', className: '甲班', score: 100, inspectorName: '張哲銘', violations: {}, notes: '滿分完美的教室衛生環境' },
+      { id: 'REC-20261109-02', date: '2026-11-09', taskType: '外掃檢查', grade: '三年級', department: '建築科', className: '甲班', score: 99, inspectorName: '林雅婷', violations: { 'V-OUT-02': 1 }, notes: '圍欄樹枝上有塑膠袋' },
+      { id: 'REC-20261109-03', date: '2026-11-09', taskType: '內掃檢查', grade: '一年級', department: '製圖科', className: '丙班', score: 97, inspectorName: '陳建宏', violations: { 'V-IN-07': 2, 'V-IN-01': 1 }, notes: '垃圾桶爆滿未倒' }
+    ];
+
+    createApp({
+      setup() {
+        const activeTab = ref('ranking');
+        const settingsTab = ref('inspectors');
+        const leaderSubTab = ref('broadcast');
+
+        const toast = reactive({ show: false, message: '', type: 'success', id: 0 });
+        const showToast = (msg, type = 'success') => {
+          toast.message = msg;
+          toast.type = type;
+          toast.id = Date.now();
+          toast.show = true;
+          setTimeout(() => { toast.show = false; }, 3500);
+        };
+
+        const inspectors = ref([]);
+        const violationTypes = ref([]);
+        const departments = ref([]);
+        const grades = ref([]);
+        const records = ref([]);
+
+        const broadcastNotice = reactive({ title: '', content: '', updatedAt: '' });
+        const broadcastForm = reactive({ title: '', content: '' });
+
+        const attendanceDate = ref(new Date().toISOString().split('T')[0]);
+        const attendanceLogs = ref({});
+
+        const serviceHoursList = ref([]);
+        const serviceHourForm = reactive({
+          inspectorId: '',
+          date: new Date().toISOString().split('T')[0],
+          hours: 0.5,
+          reason: '執行衛糾環境督導評分'
+        });
+
+        // Form state
+        const formData = reactive({
+          taskType: '內掃檢查',
+          date: new Date().toISOString().split('T')[0],
+          grade: '一年級',
+          department: '機加科',
+          className: '甲班',
+          customClassName: '',
+          inspectorId: '',
+          inspectorPin: '',
+          isVerified: false,
+          selectedViolations: {},
+          customNotes: ''
+        });
+
+        const verificationError = ref(false);
+
+        // Filter for Weekly ranking page
+        const queryFilters = reactive({
+          weekId: 'ALL',
+          grade: '',
+          department: '',
+          className: ''
+        });
+
+        const selectedClassKey = ref(null);
+        const taskCategoryFilter = ref('ALL');
+
+        // Modals
+        const editingRecord = ref(null);
+        const showInspectorModal = ref(false);
+        const inspectorForm = reactive({ id: '', name: '', role: '', pin: '1234' });
+        
+        const showViolationModal = ref(false);
+        const violationForm = reactive({ id: '', category: 'indoor', name: '', points: 1, description: '' });
+
+        const newDeptName = ref('');
+        const newGradeName = ref('');
+
+        let deptChartInstance = null;
+        let violationChartInstance = null;
+
+        // Load & Save Storage
+        const loadDatabase = () => {
+          try {
+            const saved = localStorage.getItem('weijiu_dijia_db_v66');
+            if (saved) {
+              const data = JSON.parse(saved);
+              inspectors.value = data.inspectors || DEFAULT_INSPECTORS;
+              violationTypes.value = data.violationTypes || DEFAULT_VIOLATIONS;
+              departments.value = data.departments || DEFAULT_DEPARTMENTS;
+              grades.value = data.grades || DEFAULT_GRADES;
+              records.value = data.records || DEFAULT_RECORDS;
+              
+              const bc = data.broadcastNotice || DEFAULT_BROADCAST;
+              broadcastNotice.title = bc.title;
+              broadcastNotice.content = bc.content;
+              broadcastNotice.updatedAt = bc.updatedAt;
+              broadcastForm.title = bc.title;
+              broadcastForm.content = bc.content;
+
+              attendanceLogs.value = data.attendanceLogs || {};
+              serviceHoursList.value = data.serviceHoursList || DEFAULT_SERVICE_HOURS;
+            } else {
+              resetToDefaultData();
+            }
+          } catch (e) {
+            resetToDefaultData();
+          }
+        };
+
+        const saveDatabase = () => {
+          const payload = {
+            inspectors: inspectors.value,
+            violationTypes: violationTypes.value,
+            departments: departments.value,
+            grades: grades.value,
+            records: records.value,
+            broadcastNotice: { ...broadcastNotice },
+            attendanceLogs: { ...attendanceLogs.value },
+            serviceHoursList: serviceHoursList.value
+          };
+          localStorage.setItem('weijiu_dijia_db_v66', JSON.stringify(payload));
+        };
+
+        const resetToDefaultData = () => {
+          inspectors.value = [...DEFAULT_INSPECTORS];
+          violationTypes.value = [...DEFAULT_VIOLATIONS];
+          departments.value = [...DEFAULT_DEPARTMENTS];
+          grades.value = [...DEFAULT_GRADES];
+          records.value = [...DEFAULT_RECORDS];
+          
+          broadcastNotice.title = DEFAULT_BROADCAST.title;
+          broadcastNotice.content = DEFAULT_BROADCAST.content;
+          broadcastNotice.updatedAt = DEFAULT_BROADCAST.updatedAt;
+          broadcastForm.title = DEFAULT_BROADCAST.title;
+          broadcastForm.content = DEFAULT_BROADCAST.content;
+
+          attendanceLogs.value = {};
+          serviceHoursList.value = [...DEFAULT_SERVICE_HOURS];
+          saveDatabase();
+          showToast('已重置為系統標準預設資料庫！');
+        };
+
+        // Date String Formatting
+        const todayFormatted = computed(() => {
+          const now = new Date();
+          const yyyy = now.getFullYear();
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+          return `${yyyy}-${mm}-${dd} (星期${weekDays[now.getDay()]})`;
+        });
+
+        // Current Selected Inspector
+        const currentSelectedInspector = computed(() => {
+          return inspectors.value.find(i => i.id === formData.inspectorId) || null;
+        });
+
+        const onInspectorChange = () => {
+          formData.isVerified = false;
+          formData.inspectorPin = '';
+          verificationError.value = false;
+        };
+
+        const verifyInspector = () => {
+          if (!currentSelectedInspector.value) return;
+          if (formData.inspectorPin === currentSelectedInspector.value.pin) {
+            formData.isVerified = true;
+            verificationError.value = false;
+            showToast(`評分人員 [${currentSelectedInspector.value.name}] 驗證成功！`, 'success');
+          } else {
+            formData.isVerified = false;
+            verificationError.value = true;
+            showToast('驗證失敗：密碼不正確！', 'error');
+          }
+        };
+
+        // Filtered violation items
+        const activeCategoryViolations = computed(() => {
+          const cat = formData.taskType === '內掃檢查' ? 'indoor' : 'outdoor';
+          return violationTypes.value.filter(v => v.category === cat);
+        });
+
+        const getItemCount = (vId) => {
+          return formData.selectedViolations[vId] || 0;
+        };
+
+        const toggleViolationItem = (vId) => {
+          if (formData.selectedViolations[vId]) {
+            delete formData.selectedViolations[vId];
+          } else {
+            formData.selectedViolations[vId] = 1;
+          }
+        };
+
+        const changeItemCount = (vId, delta) => {
+          const current = formData.selectedViolations[vId] || 0;
+          const updated = current + delta;
+          if (updated <= 0) {
+            delete formData.selectedViolations[vId];
+          } else {
+            formData.selectedViolations[vId] = updated;
+          }
+        };
+
+        const getItemIconClass = (name) => {
+          if (name.includes('垃圾')) return 'fa-solid fa-trash';
+          if (name.includes('拖地') || name.includes('地面')) return 'fa-solid fa-broom';
+          if (name.includes('便斗') || name.includes('便池')) return 'fa-solid fa-restroom';
+          if (name.includes('洗手台') || name.includes('水溝')) return 'fa-solid fa-faucet';
+          if (name.includes('窗戶')) return 'fa-solid fa-window-maximize';
+          if (name.includes('桌椅') || name.includes('講桌')) return 'fa-solid fa-chair';
+          if (name.includes('黑板')) return 'fa-solid fa-chalkboard';
+          return 'fa-solid fa-triangle-exclamation';
+        };
+
+        // Score Calculations
+        const currentTotalDeductions = computed(() => {
+          let sum = 0;
+          for (const [vId, count] of Object.entries(formData.selectedViolations)) {
+            const item = violationTypes.value.find(v => v.id === vId);
+            if (item && count > 0) {
+              sum += (item.points || 1) * count;
+            }
+          }
+          return sum;
+        });
+
+        const currentFinalScore = computed(() => {
+          return Math.max(0, 100 - currentTotalDeductions.value);
+        });
+
+        const scoreColorClass = computed(() => {
+          const score = currentFinalScore.value;
+          if (score >= 95) return 'text-muji-wood';
+          if (score >= 85) return 'text-muji-sage';
+          if (score >= 75) return 'text-muji-amber';
+          return 'text-muji-terracotta';
+        });
+
+        const submitRatingForm = () => {
+          if (!formData.isVerified) {
+            showToast('請先完成評分人員驗證！', 'warning');
+            return;
+          }
+
+          const targetClass = formData.className === '自訂輸入班別' ? (formData.customClassName || '自訂班') : formData.className;
+          const recId = 'REC-' + Date.now();
+
+          const record = {
+            id: recId,
+            date: formData.date,
+            taskType: formData.taskType,
+            grade: formData.grade,
+            department: formData.department,
+            className: targetClass,
+            score: currentFinalScore.value,
+            inspectorName: currentSelectedInspector.value?.name || '衛生組長',
+            violations: { ...formData.selectedViolations },
+            notes: formData.customNotes
+          };
+
+          records.value.unshift(record);
+
+          // 自動帶入服務證明時數發放 (每次核發 0.5 小時) 與當日到勤紀錄
+          if (currentSelectedInspector.value) {
+            const ins = currentSelectedInspector.value;
+            const newSH = {
+              id: 'SH-AUTO-' + Date.now(),
+              inspectorId: ins.id,
+              inspectorName: ins.name,
+              date: formData.date,
+              hours: 0.5,
+              reason: `完成 [${formData.grade} ${formData.department} ${targetClass}] ${formData.taskType} 評分`
+            };
+            serviceHoursList.value.unshift(newSH);
+
+            // 自動標記該評分人員當日出勤狀態為「到勤」
+            if (!attendanceLogs.value[formData.date]) {
+              attendanceLogs.value[formData.date] = {};
+            }
+            const currentNote = attendanceLogs.value[formData.date][ins.id]?.note || '';
+            attendanceLogs.value[formData.date][ins.id] = { status: '到勤', note: currentNote || '執行評分自動出勤' };
+          }
+
+          saveDatabase();
+
+          showToast(`成功提交 [${formData.grade} ${formData.department} ${targetClass}] 評分！已自動帶入 0.5 小時服務時數並完成到勤紀錄！`, 'success');
+          
+          formData.selectedViolations = {};
+          formData.customNotes = '';
+        };
+
+        const resetForm = () => {
+          formData.selectedViolations = {};
+          formData.customNotes = '';
+          formData.className = '甲班';
+          formData.customClassName = '';
+        };
+
+        // WEEKLY RANKINGS LOGIC
+        const availableWeeks = computed(() => {
+          return [
+            { id: 'W1', label: '第 1 週 (2026/11/09 ~ 2026/11/13)' },
+            { id: 'W2', label: '第 2 週 (2026/11/16 ~ 2026/11/20)' },
+            { id: 'W3', label: '第 3 週 (2026/11/23 ~ 2026/11/27)' }
+          ];
+        });
+
+        const currentSelectedWeek = computed(() => {
+          if (queryFilters.weekId === 'ALL') return null;
+          return availableWeeks.value.find(w => w.id === queryFilters.weekId);
+        });
+
+        const weeklyRankings = computed(() => {
+          const classMap = {};
+
+          records.value.forEach(rec => {
+            if (queryFilters.grade && rec.grade !== queryFilters.grade) return;
+            if (queryFilters.department && rec.department !== queryFilters.department) return;
+            if (queryFilters.className && rec.className !== queryFilters.className) return;
+
+            const key = `${rec.grade}_${rec.department}_${rec.className}`;
+            if (!classMap[key]) {
+              classMap[key] = {
+                classKey: key,
+                grade: rec.grade,
+                department: rec.department,
+                className: rec.className,
+                indoorScores: [],
+                outdoorScores: [],
+                totalDeductionPoints: 0,
+                records: []
+              };
+            }
+
+            classMap[key].records.push(rec);
+
+            let recordDeduction = 0;
+            for (const [vId, cnt] of Object.entries(rec.violations || {})) {
+              const vItem = violationTypes.value.find(v => v.id === vId);
+              recordDeduction += (vItem?.points || 1) * cnt;
+            }
+            classMap[key].totalDeductionPoints += recordDeduction;
+
+            if (rec.taskType === '內掃檢查') {
+              classMap[key].indoorScores.push(rec.score);
+            } else {
+              classMap[key].outdoorScores.push(rec.score);
+            }
+          });
+
+          const list = Object.values(classMap).map(c => {
+            const indoorAvg = c.indoorScores.length ? Math.round(c.indoorScores.reduce((a,b)=>a+b, 0) / c.indoorScores.length) : 100;
+            const outdoorAvg = c.outdoorScores.length ? Math.round(c.outdoorScores.reduce((a,b)=>a+b, 0) / c.outdoorScores.length) : 100;
+            const finalScore = Math.round((indoorAvg + outdoorAvg) / 2);
+
+            let status = { label: '優良', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+            if (finalScore < 90) status = { label: '需加強', class: 'bg-red-50 text-red-700 border-red-200' };
+            else if (finalScore < 95) status = { label: '合格', class: 'bg-amber-50 text-amber-700 border-amber-200' };
+
+            return {
+              ...c,
+              indoorAvg,
+              outdoorAvg,
+              finalScore,
+              status
+            };
+          });
+
+          list.sort((a, b) => b.finalScore - a.finalScore || a.totalDeductionPoints - b.totalDeductionPoints);
+
+          return list.map((item, index) => ({
+            ...item,
+            rank: index + 1
+          }));
+        });
+
+        const selectedClassDetail = computed(() => {
+          if (!selectedClassKey.value) return null;
+          return weeklyRankings.value.find(c => c.classKey === selectedClassKey.value) || null;
+        });
+
+        const selectClassForDetail = (item) => {
+          if (selectedClassKey.value === item.classKey) {
+            selectedClassKey.value = null;
+          } else {
+            selectedClassKey.value = item.classKey;
+          }
+        };
+
+        const resetQueryFilters = () => {
+          queryFilters.weekId = 'ALL';
+          queryFilters.grade = '';
+          queryFilters.department = '';
+          queryFilters.className = '';
+          selectedClassKey.value = null;
+        };
+
+        const printWeeklyReport = () => {
+          window.print();
+        };
+
+        const exportWeeklyCSV = () => {
+          let csv = '名次,年級,科別,班別,內掃平均,外掃平均,總扣分數,最終得分,狀態\n';
+          weeklyRankings.value.forEach(item => {
+            csv += `${item.rank},${item.grade},${item.department},${item.className},${item.indoorAvg},${item.outdoorAvg},${item.totalDeductionPoints},${item.finalScore},${item.status.label}\n`;
+          });
+          downloadBlob(csv, `衛糾底家_週成績報表_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
+        };
+
+        // TODAY TASKS & PROGRESS
+        const todayTaskStats = computed(() => {
+          const totalCount = 18;
+          const todayStr = formData.date;
+          const done = records.value.filter(r => r.date === todayStr);
+          const completedCount = done.length;
+          const pendingCount = Math.max(0, totalCount - completedCount);
+          const percent = Math.min(100, Math.round((completedCount / totalCount) * 100));
+
+          return { totalCount, completedCount, pendingCount, percent };
+        });
+
+        const pendingTasksList = computed(() => {
+          const list = [];
+          const depts = departments.value.slice(0, 5);
+          depts.forEach((d, idx) => {
+            list.push({ id: `T-IN-${idx}`, grade: '一年級', department: d, className: '甲班', taskType: '內掃檢查', zoneName: '室內教室與走廊' });
+            list.push({ id: `T-OUT-${idx}`, grade: '一年級', department: d, className: '甲班', taskType: '外掃檢查', zoneName: '外掃區廁所與水溝' });
+          });
+          return list;
+        });
+
+        const filteredPendingTasks = computed(() => {
+          if (taskCategoryFilter.value === 'ALL') return pendingTasksList.value;
+          return pendingTasksList.value.filter(t => t.taskType === taskCategoryFilter.value);
+        });
+
+        const quickStartTask = (task) => {
+          formData.grade = task.grade;
+          formData.department = task.department;
+          formData.className = task.className;
+          formData.taskType = task.taskType;
+          activeTab.value = 'form';
+          showToast(`已載入 [${task.grade} ${task.department} ${task.className}] 評分任務！`);
+        };
+
+        // HISTORY RECORDS
+        const filteredRecords = computed(() => records.value);
+
+        const openEditModal = (r) => {
+          editingRecord.value = JSON.parse(JSON.stringify(r));
+        };
+
+        const saveEditedRecord = () => {
+          const idx = records.value.findIndex(r => r.id === editingRecord.value.id);
+          if (idx !== -1) {
+            records.value[idx] = { ...editingRecord.value };
+            saveDatabase();
+            showToast('評分紀錄已成功更新！');
+          }
+          editingRecord.value = null;
+        };
+
+        const confirmDeleteRecord = (id) => {
+          records.value = records.value.filter(r => r.id !== id);
+          saveDatabase();
+          showToast('已刪除評分紀錄', 'info');
+        };
+
+        const exportCSV = () => {
+          let csv = '日期,類別,年級,科別,班別,得分,評分員,備註\n';
+          records.value.forEach(r => {
+            csv += `${r.date},${r.taskType},${r.grade},${r.department},${r.className},${r.score},${r.inspectorName},"${r.notes || ''}"\n`;
+          });
+          downloadBlob(csv, `衛糾底家_評分紀錄_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
+        };
+
+        const exportJSON = () => {
+          const dataStr = JSON.stringify(records.value, null, 2);
+          downloadBlob(dataStr, `衛糾底家_備份_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+        };
+
+        const downloadBlob = (content, filename, type) => {
+          const blob = new Blob(['\ufeff' + content], { type });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        // LEADER HUB MODULES
+        const saveBroadcastNotice = () => {
+          broadcastNotice.title = broadcastForm.title;
+          broadcastNotice.content = broadcastForm.content;
+          const now = new Date();
+          broadcastNotice.updatedAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+          saveDatabase();
+          showToast('已成功儲存並發布組長廣播公告！');
+        };
+
+        // Attendance Methods
+        const getAttendanceStatus = (insId) => {
+          const dateLog = attendanceLogs.value[attendanceDate.value] || {};
+          return dateLog[insId]?.status || '到勤';
+        };
+
+        const getAttendanceNote = (insId) => {
+          const dateLog = attendanceLogs.value[attendanceDate.value] || {};
+          return dateLog[insId]?.note || '';
+        };
+
+        const setAttendance = (insId, status) => {
+          if (!attendanceLogs.value[attendanceDate.value]) {
+            attendanceLogs.value[attendanceDate.value] = {};
+          }
+          const currentNote = attendanceLogs.value[attendanceDate.value][insId]?.note || '';
+          attendanceLogs.value[attendanceDate.value][insId] = { status, note: currentNote };
+        };
+
+        const setAttendanceNote = (insId, note) => {
+          if (!attendanceLogs.value[attendanceDate.value]) {
+            attendanceLogs.value[attendanceDate.value] = {};
+          }
+          const currentStatus = attendanceLogs.value[attendanceDate.value][insId]?.status || '到勤';
+          attendanceLogs.value[attendanceDate.value][insId] = { status: currentStatus, note };
+        };
+
+        const batchAllPresent = () => {
+          if (!attendanceLogs.value[attendanceDate.value]) {
+            attendanceLogs.value[attendanceDate.value] = {};
+          }
+          inspectors.value.forEach(ins => {
+            const currentNote = attendanceLogs.value[attendanceDate.value][ins.id]?.note || '';
+            attendanceLogs.value[attendanceDate.value][ins.id] = { status: '到勤', note: currentNote };
+          });
+          showToast('已將全體隊員設為到勤！');
+        };
+
+        const saveAttendanceLogs = () => {
+          saveDatabase();
+          showToast(`已成功儲存 ${attendanceDate.value} 出勤點名紀錄！`);
+        };
+
+        const attendanceSummary = computed(() => {
+          const dateLog = attendanceLogs.value[attendanceDate.value] || {};
+          let present = 0, late = 0, absent = 0, leave = 0;
+          inspectors.value.forEach(ins => {
+            const st = dateLog[ins.id]?.status || '到勤';
+            if (st === '到勤') present++;
+            else if (st === '遲到') late++;
+            else if (st === '缺席') absent++;
+            else if (st === '公假') leave++;
+          });
+          const total = inspectors.value.length || 1;
+          const rate = Math.round(((present + late) / total) * 100);
+          return { present, late, absent, leave, rate };
+        });
+
+        // Service Hours Methods (0.5 hour rules)
+        const addServiceHour = () => {
+          if (!serviceHourForm.inspectorId) {
+            showToast('請選擇衛糾人員！', 'warning');
+            return;
+          }
+          const ins = inspectors.value.find(i => i.id === serviceHourForm.inspectorId);
+          const newSH = {
+            id: 'SH-' + Date.now(),
+            inspectorId: ins.id,
+            inspectorName: ins.name,
+            date: serviceHourForm.date,
+            hours: serviceHourForm.hours || 0.5,
+            reason: serviceHourForm.reason || '執行衛糾督導評分'
+          };
+          serviceHoursList.value.unshift(newSH);
+          saveDatabase();
+          showToast(`成功核發 [${ins.name}] 服務時數 +${newSH.hours} 小時！`);
+        };
+
+        const batchIssueHoursForToday = () => {
+          const dateStr = serviceHourForm.date;
+          const dateLog = attendanceLogs.value[dateStr] || {};
+          let count = 0;
+          inspectors.value.forEach(ins => {
+            const st = dateLog[ins.id]?.status || '到勤';
+            if (st === '到勤') {
+              serviceHoursList.value.unshift({
+                id: 'SH-' + Date.now() + '-' + ins.id,
+                inspectorId: ins.id,
+                inspectorName: ins.name,
+                date: dateStr,
+                hours: 0.5,
+                reason: '執行衛糾當日巡檢勤務 (批次核發)'
+              });
+              count++;
+            }
+          });
+          saveDatabase();
+          showToast(`一鍵核發完成！共為 ${count} 位到勤隊員核發各 0.5 小時服務時數。`);
+        };
+
+        const deleteServiceHour = (id) => {
+          serviceHoursList.value = serviceHoursList.value.filter(sh => sh.id !== id);
+          saveDatabase();
+          showToast('已刪除該筆服務時數紀錄', 'info');
+        };
+
+        const exportHoursCSV = () => {
+          let csv = '發放日期,衛糾人員,核發時數,勤務事由\n';
+          serviceHoursList.value.forEach(sh => {
+            csv += `${sh.date},${sh.inspectorName},${sh.hours},"${sh.reason}"\n`;
+          });
+          downloadBlob(csv, `衛糾服務時數清冊_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
+        };
+
+        // ANALYTICS & CHARTS
+        const stats = computed(() => {
+          if (!records.value.length) {
+            return { avgScore: 100, indoorAvg: 100, outdoorAvg: 100, bestDept: '無資料', topViolation: '無資料' };
+          }
+          const total = records.value.reduce((a, b) => a + b.score, 0);
+          const avgScore = Math.round(total / records.value.length);
+
+          const indoorRecs = records.value.filter(r => r.taskType === '內掃檢查');
+          const outdoorRecs = records.value.filter(r => r.taskType === '外掃檢查');
+          const indoorAvg = indoorRecs.length ? Math.round(indoorRecs.reduce((a,b)=>a+b.score,0)/indoorRecs.length) : 100;
+          const outdoorAvg = outdoorRecs.length ? Math.round(outdoorRecs.reduce((a,b)=>a+b.score,0)/outdoorRecs.length) : 100;
+
+          // Department best
+          const deptMap = {};
+          records.value.forEach(r => {
+            if (!deptMap[r.department]) deptMap[r.department] = [];
+            deptMap[r.department].push(r.score);
+          });
+          let bestDept = '機加科';
+          let maxAvg = 0;
+          for (const [dept, arr] of Object.entries(deptMap)) {
+            const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+            if (avg > maxAvg) {
+              maxAvg = avg;
+              bestDept = dept;
+            }
+          }
+
+          // Top violation item
+          const vMap = {};
+          records.value.forEach(r => {
+            for (const [vId, cnt] of Object.entries(r.violations || {})) {
+              vMap[vId] = (vMap[vId] || 0) + cnt;
+            }
+          });
+          let topVId = '';
+          let maxVCount = 0;
+          for (const [vId, cnt] of Object.entries(vMap)) {
+            if (cnt > maxVCount) {
+              maxVCount = cnt;
+              topVId = vId;
+            }
+          }
+          const vObj = violationTypes.value.find(v => v.id === topVId);
+          const topViolation = vObj ? vObj.name : '掃具未歸定位';
+
+          return { avgScore, indoorAvg, outdoorAvg, bestDept, topViolation };
+        });
+
+        const renderCharts = () => {
+          const deptCtx = document.getElementById('deptChart');
+          const vCtx = document.getElementById('violationChart');
+          if (!deptCtx || !vCtx) return;
+
+          if (deptChartInstance) deptChartInstance.destroy();
+          if (violationChartInstance) violationChartInstance.destroy();
+
+          const deptLabels = departments.value.slice(0, 6);
+          const deptScores = deptLabels.map(() => Math.floor(Math.random() * 5) + 95);
+
+          deptChartInstance = new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+              labels: deptLabels,
+              datasets: [{
+                label: '平均成績',
+                data: deptScores,
+                backgroundColor: '#7C6958',
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: { y: { min: 80, max: 100 } }
+            }
+          });
+
+          const vLabels = ['地面', '沒拖地', '便池未刷', '掃具未歸', '垃圾桶滿'];
+          const vCounts = [12, 9, 7, 5, 4];
+
+          violationChartInstance = new Chart(vCtx, {
+            type: 'bar',
+            data: {
+              labels: vLabels,
+              datasets: [{
+                label: '累計扣分次數',
+                data: vCounts,
+                backgroundColor: '#B85B48',
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              indexAxis: 'y'
+            }
+          });
+        };
+
+        const switchTab = (tab) => {
+          activeTab.value = tab;
+          if (tab === 'leaderHub' && leaderSubTab.value === 'dashboard') {
+            nextTick(() => renderCharts());
+          }
+        };
+
+        const switchLeaderSubTab = (subTab) => {
+          leaderSubTab.value = subTab;
+          if (subTab === 'dashboard') {
+            nextTick(() => renderCharts());
+          }
+        };
+
+        // INSPECTORS DB
+        const openInspectorModal = (ins = null) => {
+          if (ins) {
+            inspectorForm.id = ins.id;
+            inspectorForm.name = ins.name;
+            inspectorForm.role = ins.role;
+            inspectorForm.pin = ins.pin;
+          } else {
+            inspectorForm.id = '';
+            inspectorForm.name = '';
+            inspectorForm.role = '衛糾隊員';
+            inspectorForm.pin = '1234';
+          }
+          showInspectorModal.value = true;
+        };
+
+        const saveInspector = () => {
+          if (!inspectorForm.name) {
+            showToast('請輸入評分人員姓名！', 'warning');
+            return;
+          }
+          if (inspectorForm.id) {
+            const idx = inspectors.value.findIndex(i => i.id === inspectorForm.id);
+            if (idx !== -1) inspectors.value[idx] = { ...inspectorForm };
+          } else {
+            inspectors.value.push({
+              id: 'INS-' + Date.now(),
+              name: inspectorForm.name,
+              role: inspectorForm.role,
+              pin: inspectorForm.pin || '1234'
+            });
+          }
+          saveDatabase();
+          showInspectorModal.value = false;
+          showToast('評分人員資料已成功更新！');
+        };
+
+        const deleteInspector = (id) => {
+          inspectors.value = inspectors.value.filter(i => i.id !== id);
+          saveDatabase();
+          showToast('已刪除評分人員', 'info');
+        };
+
+        // VIOLATION DB
+        const openViolationModal = (v = null) => {
+          if (v) {
+            violationForm.id = v.id;
+            violationForm.category = v.category;
+            violationForm.name = v.name;
+            violationForm.points = v.points || 1;
+            violationForm.description = v.description;
+          } else {
+            violationForm.id = '';
+            violationForm.category = 'indoor';
+            violationForm.name = '';
+            violationForm.points = 1;
+            violationForm.description = '';
+          }
+          showViolationModal.value = true;
+        };
+
+        const saveViolation = () => {
+          if (!violationForm.name) {
+            showToast('請輸入扣分項目名稱！', 'warning');
+            return;
+          }
+          if (violationForm.id) {
+            const idx = violationTypes.value.findIndex(v => v.id === violationForm.id);
+            if (idx !== -1) violationTypes.value[idx] = { ...violationForm };
+          } else {
+            violationTypes.value.push({
+              id: 'V-CUS-' + Date.now(),
+              category: violationForm.category,
+              name: violationForm.name,
+              points: violationForm.points || 1,
+              description: violationForm.description || '標籤細項說明'
+            });
+          }
+          saveDatabase();
+          showViolationModal.value = false;
+          showToast('檢查扣分項目已更新！');
+        };
+
+        const deleteViolation = (id) => {
+          violationTypes.value = violationTypes.value.filter(v => v.id !== id);
+          saveDatabase();
+          showToast('已刪除該扣分項目', 'info');
+        };
+
+        const getViolationName = (vId) => {
+          const v = violationTypes.value.find(item => item.id === vId);
+          return v ? v.name : vId;
+        };
+
+        // STRUCTURE
+        const addDepartment = () => {
+          if (newDeptName.value && !departments.value.includes(newDeptName.value)) {
+            departments.value.push(newDeptName.value);
+            newDeptName.value = '';
+            saveDatabase();
+            showToast('已成功新增科別！');
+          }
+        };
+
+        const removeDepartment = (idx) => {
+          departments.value.splice(idx, 1);
+          saveDatabase();
+        };
+
+        const addGrade = () => {
+          if (newGradeName.value && !grades.value.includes(newGradeName.value)) {
+            grades.value.push(newGradeName.value);
+            newGradeName.value = '';
+            saveDatabase();
+            showToast('已成功新增年級！');
+          }
+        };
+
+        const removeGrade = (idx) => {
+          grades.value.splice(idx, 1);
+          saveDatabase();
+        };
+
+        onMounted(() => {
+          loadDatabase();
+        });
+
+        return {
+          activeTab,
+          settingsTab,
+          leaderSubTab,
+          toast,
+          inspectors,
+          violationTypes,
+          departments,
+          grades,
+          records,
+          broadcastNotice,
+          broadcastForm,
+          attendanceDate,
+          attendanceLogs,
+          serviceHoursList,
+          serviceHourForm,
+          formData,
+          verificationError,
+          queryFilters,
+          selectedClassKey,
+          taskCategoryFilter,
+          editingRecord,
+          showInspectorModal,
+          inspectorForm,
+          showViolationModal,
+          violationForm,
+          newDeptName,
+          newGradeName,
+          todayFormatted,
+          currentSelectedInspector,
+          onInspectorChange,
+          verifyInspector,
+          activeCategoryViolations,
+          getItemCount,
+          toggleViolationItem,
+          changeItemCount,
+          getItemIconClass,
+          currentTotalDeductions,
+          currentFinalScore,
+          scoreColorClass,
+          submitRatingForm,
+          resetForm,
+          availableWeeks,
+          currentSelectedWeek,
+          weeklyRankings,
+          selectedClassDetail,
+          selectClassForDetail,
+          resetQueryFilters,
+          printWeeklyReport,
+          exportWeeklyCSV,
+          todayTaskStats,
+          filteredPendingTasks,
+          quickStartTask,
+          filteredRecords,
+          openEditModal,
+          saveEditedRecord,
+          confirmDeleteRecord,
+          exportCSV,
+          exportJSON,
+          saveBroadcastNotice,
+          getAttendanceStatus,
+          getAttendanceNote,
+          setAttendance,
+          setAttendanceNote,
+          batchAllPresent,
+          saveAttendanceLogs,
+          attendanceSummary,
+          addServiceHour,
+          batchIssueHoursForToday,
+          deleteServiceHour,
+          exportHoursCSV,
+          stats,
+          switchTab,
+          switchLeaderSubTab,
+          openInspectorModal,
+          saveInspector,
+          deleteInspector,
+          openViolationModal,
+          saveViolation,
+          deleteViolation,
+          getViolationName,
+          addDepartment,
+          removeDepartment,
+          addGrade,
+          removeGrade,
+          resetToDefaultData
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
